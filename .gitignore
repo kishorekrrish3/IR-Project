@@ -1,0 +1,23 @@
+# Virtual environments
+venv/
+.venv/
+env/
+.env/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints
+
+# VS Code
+.vscode/
+
+# Data and Models (optional, but often large)
+data/processed/
+models/xgboost/*.pkl
+models/xgboost/*.json
+models/neural_net/*.h5
+models/neural_net/*.keras
