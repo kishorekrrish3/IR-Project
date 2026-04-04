@@ -81,31 +81,32 @@ _FRAUD_PATTERN_EMBEDDINGS = _embed_model.encode(FRAUD_PATTERNS, convert_to_tenso
 # ─────────────────────────────────────────────
 # 2. Keyword lists
 # ─────────────────────────────────────────────
+# Fraud-specific keywords: urgency, exaggeration, pressure, missing evidence
+# NOTE: Pure hedge/vague words are intentionally excluded here — they have their
+# own dedicated channel (_hedge_density) to avoid double-counting.
 FRAUD_KEYWORDS = {
-    # urgency
+    # urgency / pressure tactics
     "urgent", "urgently", "immediately", "asap", "right away", "emergency",
-    "desperate", "desperately", "cannot wait", "quickly",
-    # vagueness
-    "approximately", "i think", "maybe", "unclear", "unsure", "not sure",
-    "i believe", "i don't remember", "cannot remember", "do not recall",
-    "i cannot recall", "not exactly", "i forgot", "sometime",
-    # exaggeration
-    "totally destroyed", "completely destroyed", "total loss", "maximum",
-    "full amount", "full value", "much worse", "way more", "significant damage",
-    # pressure / manipulation
-    "loyal customer", "many years", "deserve", "unfair", "frustrated",
-    "distress", "financial difficulty", "financial hardship", "financial crisis",
-    # missing evidence
+    "desperate", "desperately", "cannot wait",
+    # exaggeration of damage / claim
+    "totally destroyed", "completely destroyed", "maximum",
+    "full amount", "full value", "much worse", "way more",
+    # manipulation / entitlement
+    "loyal customer", "deserve", "unfair", "distress",
+    "financial difficulty", "financial hardship", "financial crisis",
+    # missing evidence (explicit absence statements)
     "no witnesses", "no police", "no report", "no photos", "no documentation",
-    "no evidence", "nobody saw", "no one saw", "no camera",
+    "no evidence", "nobody saw", "no one saw",
 }
 
+# Vague / uncertain language — measured separately from fraud keywords
 HEDGE_WORDS = {
     "approximately", "about", "around", "roughly", "maybe", "perhaps",
     "possibly", "probably", "i think", "i believe", "i guess", "i feel",
     "might", "could have", "not sure", "unclear", "somewhere", "sometime",
     "kind of", "sort of", "i don't know", "don't remember", "not exactly",
-    "more or less",
+    "more or less", "i cannot recall", "cannot remember", "do not recall",
+    "i forgot", "i don't remember", "not sure", "unsure",
 }
 
 SPECIFICITY_INDICATORS = {
@@ -190,11 +191,17 @@ def compute_nlp_fraud_score(text: str) -> float:
     """
     Compute a single NLP-based fraud score in [0, 1].
 
-    Weights:
-      - Semantic similarity (40%)
-      - Keyword density     (25%)
-      - Vagueness / hedges  (20%)
-      - Specificity penalty (−15%)
+    Four independent fraud signals are combined:
+      - Semantic similarity to fraud patterns  (45%) — strongest signal
+      - Fraud keyword density                  (35%) — urgency/pressure/exaggeration only
+      - Vagueness / hedge word density         (10%) — uncertainty language
+      - Sentiment suspicion                    (10%) — tone analysis
+      - Specificity bonus                      (−20%) — named people/dates/reports reduce score
+
+    Tier targets after blending with XGBoost (50/50):
+      LOW    : final_score < 30
+      MEDIUM : 30 ≤ final_score < 60
+      HIGH   : final_score ≥ 60
     """
     if not text or not text.strip():
         return 0.3   # no text → mild neutral suspicion
@@ -202,15 +209,15 @@ def compute_nlp_fraud_score(text: str) -> float:
     sem    = _semantic_fraud_score(text)    # 0‒1 (higher = more fraud-like)
     kwd    = _keyword_density(text)         # 0‒1 (higher = more fraud-like)
     hedge  = _hedge_density(text)           # 0‒1 (higher = more fraud-like)
-    spec   = _specificity_score(text)       # 0‒1 (higher = more legit)
+    spec   = _specificity_score(text)       # 0‒1 (higher = more legit → reduces score)
     sent   = _sentiment_suspicion(text)     # 0‒1 (higher = more suspicious)
 
     score = (
-        0.40 * sem
-        + 0.25 * kwd
-        + 0.20 * hedge
+        0.45 * sem
+        + 0.35 * kwd
+        + 0.10 * hedge
         + 0.10 * sent
-        - 0.15 * spec          # specificity REDUCES fraud score
+        - 0.20 * spec
     )
 
     # Clamp to [0, 1]
