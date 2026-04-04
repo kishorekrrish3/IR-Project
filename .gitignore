@@ -15,9 +15,8 @@ __pycache__/
 # VS Code
 .vscode/
 
-# Data and Models (optional, but often large)
-data/processed/
-models/xgboost/*.pkl
-models/xgboost/*.json
-models/neural_net/*.h5
-models/neural_net/*.keras
+# Data and Models
+# data/processed/
+# models/xgboost/
+# models/neural_net/
+
