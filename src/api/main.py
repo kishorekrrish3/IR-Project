@@ -179,7 +179,7 @@ def analyze_claim(input_data: ClaimInput):
         # ── Risk label ───────────────────────────────
         if final_score < 30:
             risk_level = "LOW"
-        elif final_score < 60:
+        elif final_score < 70:
             risk_level = "MEDIUM"
         else:
             risk_level = "HIGH"

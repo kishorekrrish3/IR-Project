@@ -7,7 +7,6 @@ seaborn
 spacy
 nltk
 transformers
-torch
 sentence-transformers
 
 xgboost

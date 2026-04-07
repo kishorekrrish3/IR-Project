@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: streamlit-deployment
+  labels:
+    app: fraud-streamlit
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fraud-streamlit
+  template:
+    metadata:
+      labels:
+        app: fraud-streamlit
+    spec:
+      containers:
+      - name: streamlit
+        image: fraud-streamlit:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8501
+        env:
+        - name: API_URL
+          value: "http://api-service:8000"
+        resources:
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+          requests:
+            cpu: "200m"
+            memory: "256Mi"

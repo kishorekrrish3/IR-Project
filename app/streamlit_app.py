@@ -1,5 +1,8 @@
 import streamlit as st
 import requests
+import os
+
+API_URL = os.getenv("API_URL", "http://127.0.0.1:8000")
 
 st.set_page_config(
     page_title="Insurance Fraud Detector",
@@ -144,7 +147,7 @@ if analyze:
 
         with st.spinner("Analysing claim through dual-channel pipeline..."):
             try:
-                resp = requests.post("http://127.0.0.1:8000/analyze-claim", json=payload, timeout=30)
+                resp = requests.post(f"{API_URL}/analyze-claim", json=payload, timeout=30)
 
                 if resp.status_code == 200:
                     r = resp.json()
@@ -170,7 +173,7 @@ if analyze:
                             """, unsafe_allow_html=True)
 
                         with sc2:
-                            struct_color = "risk-HIGH" if r['structured_score'] >= 60 else \
+                            struct_color = "risk-HIGH" if r['structured_score'] >= 70 else \
                                            "risk-MEDIUM" if r['structured_score'] >= 30 else "risk-LOW"
                             st.markdown(f"""
                             <div class="score-card">
@@ -183,7 +186,7 @@ if analyze:
                             """, unsafe_allow_html=True)
 
                         with sc3:
-                            nlp_color = "risk-HIGH" if r['nlp_score'] >= 60 else \
+                            nlp_color = "risk-HIGH" if r['nlp_score'] >= 70 else \
                                         "risk-MEDIUM" if r['nlp_score'] >= 30 else "risk-LOW"
                             st.markdown(f"""
                             <div class="score-card">
@@ -245,7 +248,7 @@ if analyze:
                         st.divider()
                         st.subheader("🤖 AI Interpretation")
                         score = r['final_score']
-                        if score >= 60:
+                        if score >= 70:
                             st.error(
                                 "⚠️ **HIGH RISK**: This claim exhibits strong indicators of potential fraud "
                                 "across both structured data patterns and the claim narrative. "
